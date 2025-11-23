@@ -183,7 +183,7 @@ class AdvancedSmolLM3:
 
 
 # Функция для импорта в другие файлы
-def get_ai_response(question, thinking=True, api_keys=None):
+def get_ai_text(question, thinking=True, api_keys=None):
     if api_keys is None:
         api_keys = [
             "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",
@@ -199,4 +199,4 @@ def get_ai_response(question, thinking=True, api_keys=None):
 
 # Тестирование
 if __name__ == "__main__":
-    print(get_ai_response("что такое искусственный интеллект?"))
+    print(get_ai_text("что такое искусственный интеллект?"))
