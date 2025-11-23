@@ -1,7 +1,9 @@
 import openai
 from googletrans import Translator
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
+import requests
+import json
 
 
 class AdvancedSmolLM3:
@@ -19,9 +21,9 @@ class AdvancedSmolLM3:
         self.key_usage = {key: {'last_used': None, 'error_count': 0} for key in api_keys}
         self.current_key_index = 0
         self.max_retries = len(api_keys)
-        openai.api_base = "https://router.huggingface.co/v1"
         self.model = "HuggingFaceTB/SmolLM3-3B"
         self.translator = Translator()
+        self.api_base = "https://api-inference.huggingface.co/models/"
 
     def get_best_key(self):
         """Выбирает лучший ключ на основе истории использования"""
@@ -81,12 +83,49 @@ class AdvancedSmolLM3:
 
         return '\n'.join(cleaned_lines).strip()
 
+    def query_huggingface(self, prompt, api_key, max_tokens=2500):
+        """Прямой запрос к Hugging Face API"""
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": max_tokens,
+                "temperature": 0.6,
+                "do_sample": True,
+                "return_full_text": False
+            }
+        }
+
+        try:
+            response = requests.post(
+                f"{self.api_base}{self.model}",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    return result[0].get('generated_text', '')
+            else:
+                error_msg = f"HTTP {response.status_code}: {response.text}"
+                raise Exception(error_msg)
+
+        except Exception as e:
+            raise Exception(f"HuggingFace API error: {str(e)}")
+
+        return ""
+
     def ask(self, question, thinking=False, max_tokens=2500):
         retries = 0
 
         while retries < self.max_retries:
             current_key = self.get_best_key()
-            openai.api_key = current_key
 
             try:
                 question_language = self.detect_language(question)
@@ -103,17 +142,15 @@ class AdvancedSmolLM3:
                 if thinking:
                     system_msg += " Объясни свои рассуждения шаг за шагом на русском языке."
 
-                response = openai.ChatCompletion.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": system_msg},
-                        {"role": "user", "content": question}
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=0.6
-                )
+                # Формируем полный промпт
+                full_prompt = f"{system_msg}\n\nВопрос: {question}\nОтвет:"
 
-                response_text = response.choices[0].message.content
+                # Используем прямой запрос к Hugging Face
+                response_text = self.query_huggingface(full_prompt, current_key, max_tokens)
+
+                if not response_text:
+                    raise Exception("Пустой ответ от модели")
+
                 cleaned_response = self.clean_response(response_text)
                 self.mark_key_success(current_key)
 
@@ -127,21 +164,26 @@ class AdvancedSmolLM3:
 
             except Exception as e:
                 error_msg = str(e)
+                print(f"Ошибка с ключом {current_key[:10]}...: {error_msg}")
                 self.mark_key_error(current_key)
 
-                if "rate limit" in error_msg.lower() or "quota" in error_msg.lower():
+                if "rate limit" in error_msg.lower() or "quota" in error_msg.lower() or "429" in error_msg:
+                    retries += 1
+                    if retries < self.max_retries:
+                        time.sleep(2)
+                        self.rotate_key()
+                else:
+                    # Для других ошибок сразу пробуем следующий ключ
                     retries += 1
                     if retries < self.max_retries:
                         time.sleep(1)
-                else:
-                    return f"Ошибка: {error_msg}"
+                        self.rotate_key()
 
         return "Ошибка: Все ключи исчерпали лимит запросов или произошла ошибка"
 
 
 # Функция для импорта в другие файлы
 def get_ai_response(question, thinking=True, api_keys=None):
-
     if api_keys is None:
         api_keys = [
             "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",
@@ -155,4 +197,6 @@ def get_ai_response(question, thinking=True, api_keys=None):
     return model.ask(question, thinking=thinking)
 
 
-
+# Тестирование
+if __name__ == "__main__":
+    print(get_ai_response("что такое искусственный интеллект?"))
