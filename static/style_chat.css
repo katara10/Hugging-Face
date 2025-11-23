@@ -1,0 +1,301 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0C0D14;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-buttons {
+    display: flex;
+    gap: 10px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+}
+
+.top-buttons button {
+    background: #421c74;
+    border: 1px solid #3d3d3d;
+    color: white;
+    padding: 13px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+
+.water {
+    text-align: center;
+    margin-top: 250px;
+}
+
+.water-text p {
+    color: #cfcfcf;
+}
+
+.water-text h1 {
+    color: white;
+    font-size: 30px;
+    margin-top: 10px;
+}
+
+.form_for_chat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    background: #101118;
+    border: 1px solid #3a3a3a;
+    border-radius: 40px;
+    box-shadow: 0 0 25px rgba(120, 60, 200, 0.35);
+
+
+    padding: 14px 20px;
+    width: 80%;
+    max-width: 600px;
+
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.attach-btn {
+    background: #421c74;
+    border-radius: 50%;
+    border: none;
+    width: 42px;
+    height: 42px;
+    color: #d9d9d9;
+    font-size: 24px;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+#chat_input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 18px;
+}
+
+.send-btn {
+    background: #421c74;
+    border-radius: 25%;
+    border: none;
+    width: 55px;
+    height: 42px;
+    font-size: 30px;
+    cursor: pointer;
+    color: #d9d9d9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.top-buttons button:hover{
+    background: #FFFFFF12;
+    border-color: #6a3f99;
+    color: white;
+}
+
+.attach-btn:hover{
+    background: #5c26a3;
+    color: white;
+
+}
+
+.send-btn:hover{
+    background: #5c26a3;
+    color: white;
+
+}
+
+
+.top-buttons.image{
+    background: #cfcfcf;
+}
+
+.top-buttons button.active {
+    background: #FFFFFF12; 
+    border-color: #6a3f99;
+    color: white;
+}
+
+
+
+
+
+/* Открывающаяся менюшка */
+
+
+
+.menu{
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 30px;
+    height: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+.menu span{
+    display: block;
+    height: 3px;
+    background: white;
+    border-radius: 2px;
+}
+
+.side-menu{
+    position: fixed;
+    top: 0;
+    left: -460px;
+    width: 260px;
+    height: 100%;
+    background: #0f0f17;
+    border-right: 1px solid #2a2a2a;
+    padding: 20px;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.4);
+    transition: 0.3s ease;
+    z-index: 999;
+    color: white;
+}
+
+.side-menu h2{
+    margin-top: 40px;
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.side-menu.open{
+    left: 0;
+}
+
+.form_for_chat.no-glow{
+    box-shadow: none !important;
+    border: 1px solid #2a2a2a;
+}
+
+.side-menu.glow{
+    box-shadow: 0 0 25px rgba(120, 60, 200, 0.35);
+    border-right: 1px solid #6a3f99;
+}
+
+
+
+
+
+
+
+@media (max-width: 768px) {
+
+
+    .top-buttons {
+        top: 20px;
+        right: 20px;
+        gap: 10px;
+        height: 40px;
+        
+    }
+
+    .top-buttons button {
+        padding: 10px 14px;
+        font-size: 15px;
+    }
+
+
+    .water {
+        margin-top: 180px;
+        padding: 0 10px;
+    }
+
+    .water-text h1 {
+        font-size: 40px;
+    }
+
+    .water-text p {
+        font-size: 20px;
+    }
+
+
+    .menu {
+        top: 15px;
+        left: 15px;
+        width: 26px;
+        height: 20px;
+    }
+
+    .menu span {
+        height: 3px;
+    }
+
+
+
+    .side-menu {
+        width: 220px;
+        left: -260px;
+    }
+
+
+
+    .form_for_chat {
+        bottom: 40px;
+        width: 90%;
+        padding: 10px 14px;
+        gap: 10px;
+    }
+
+    #chat_input {
+        font-size: 16px;
+    }
+
+    .attach-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 20px;
+    }
+
+    .send-btn {
+        width: 48px;
+        height: 38px;
+        font-size: 26px;
+    }
+
+    
+}
+
+
+@media (max-width: 480px) {
+    .water {
+        margin-top: 150px;
+    }
+
+    .water-text h1 {
+        font-size: 25px;
+    }
+
+    .form_for_chat {
+        bottom: 25px;
+    }
+}
+
+@media (max-width: 450px) {
+    .water-text h1 {
+    font-size: 35px;
+    }
+        #chat_input {
+        font-size: 14px;        
+    }
+}

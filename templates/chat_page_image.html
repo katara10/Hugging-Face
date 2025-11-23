@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="static\style_chat_image.css">
+</head>
+
+<script>
+function toggleMenu() {
+    const menu = document.getElementById("sideMenu");
+    const chatForm = document.querySelector(".form_for_chat");
+
+    menu.classList.toggle("open");
+
+    if (menu.classList.contains("open")) {
+        chatForm.classList.add("no-glow");
+        menu.classList.add("glow");
+    } 
+
+    else {
+        chatForm.classList.remove("no-glow");
+        menu.classList.remove("glow");
+    }
+}
+</script>
+
+
+<body> 
+
+    <div class="top-buttons">
+        <button type="button" class="text">Text</button>
+        <button type="button" class="active image">Image</button>
+    </div>
+
+    <div class="water">
+        <div class="water-text">
+            <p>HI! I’m your creative AI assistant.</p>
+            <h1>What would you like to generate today?</h1>
+        </div>
+    </div>
+
+    <div class="form_for_chat">
+
+        <input type="text" id="chat_input" name="chat_input" placeholder="Type your prompt here..." required>
+
+        <button type="submit" class="send-btn" onclick="alert('Send clicked')">→</button>
+    </div>
+
+    <div class="styles_image">
+        <button type="button" class="realism">Realism</button>
+        <button type="button" class="fantasy">Fantasy</button>
+        <button type="button" class="anime">Anime</button>
+        <button type="button" class="digital art">Digital art</button>
+        <button type="button" class="oil painting">Oil painting</button>
+        <button type="button" class="fast">Fast</button>
+    </div>
+
+</body>
+
+
+
+<div class="menu" onclick="toggleMenu()">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+
+<div class="side-menu" id="sideMenu">
+    <h2>Your chats</h2>
+</div>
+
+
+
+</html>
