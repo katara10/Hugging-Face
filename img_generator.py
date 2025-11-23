@@ -1,30 +1,47 @@
-from diffusers import StableDiffusionPipeline
-from googletrans import Translator
-import torch
+# img_generator.py
 import time
 
+# Глобальные переменные для ленивой инициализации
+_model = None
+_device = None
+_translator = None
 
-# Проверяем доступность CUDA
-device = "cuda" if torch.cuda.is_available() else "cpu"
-# Оптимизации для CPU
-torch_dtype = torch.float32 if device == "cpu" else torch.float16
 
-model = StableDiffusionPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5",
-    torch_dtype=torch_dtype,
-    safety_checker=None,
-    requires_safety_checker=False
-).to(device)
+def _initialize_model():
+    """Инициализирует модель только при первом вызове"""
+    global _model, _device, _translator
 
-# Включаем оптимизации для CPU
-if device == "cpu":
-    model.enable_attention_slicing()  # Экономит память
+    if _model is not None:
+        return
 
-translator = Translator()
+    # ОТЛОЖЕННЫЙ ИМПОРТ - решает проблему
+    from diffusers import StableDiffusionPipeline
+    from googletrans import Translator
+    import torch
+
+    # Проверяем доступность CUDA
+    _device = "cuda" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.float32 if _device == "cpu" else torch.float16
+
+    _model = StableDiffusionPipeline.from_pretrained(
+        "runwayml/stable-diffusion-v1-5",
+        torch_dtype=torch_dtype,
+        safety_checker=None,
+        requires_safety_checker=False
+    ).to(_device)
+
+    # Включаем оптимизации для CPU
+    if _device == "cpu":
+        _model.enable_attention_slicing()
+
+    _translator = Translator()
 
 
 def generate_image(russian_prompt, style="реализм", num_inference_steps=20, save_image=True):
     # Генерирует изображение из русского текстового запроса
+
+    # Инициализируем модель при первом вызове
+    _initialize_model()
 
     # Стили для улучшения качества
     styles = {
@@ -42,7 +59,7 @@ def generate_image(russian_prompt, style="реализм", num_inference_steps=2
 
     # Автоматический перевод
     try:
-        translation = translator.translate(full_prompt, src='ru', dest='en')
+        translation = _translator.translate(full_prompt, src='ru', dest='en')
         english_prompt = translation.text
     except Exception as e:
         english_prompt = full_prompt
@@ -50,8 +67,9 @@ def generate_image(russian_prompt, style="реализм", num_inference_steps=2
     start_time = time.time()
 
     # Генерация изображения с оптимизированными параметрами
+    import torch
     with torch.inference_mode():
-        image = model(
+        image = _model(
             english_prompt,
             num_inference_steps=num_inference_steps,
             guidance_scale=7.5,
@@ -71,10 +89,6 @@ def generate_image(russian_prompt, style="реализм", num_inference_steps=2
     return image
 
 
-
 # тестирование
 if __name__ == "__main__":
     image1 = generate_image("красивый закат", "фэнтези")
-
-
-
