@@ -3,31 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat</title>
-    <link rel="stylesheet" href="static\style_chat.css">
+    <title>Text Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_chat.css') }}">
+    <style>
+        /* Основной контейнер чата */
+        .chat-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Контейнер для сообщений - такой же ширины как поле ввода */
+        .chat-messages-wrapper {
+            width: 100%;
+            max-width: 800px; /* Такая же ширина как у .form_for_chat в вашем CSS */
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            height: 600px; /* Фиксированная высота как у формы ввода */
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        /* Стили для сообщений */
+        .message {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 90%;
+            clear: both;
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            float: right;
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            float: left;
+            margin-right: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Индикатор загрузки */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: white;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Таймстамп и метаданные */
+        .timestamp {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Кнопка выхода в стиле как Text/Image - СЛЕВА */
+        .logout-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+
+        .logout-btn {
+            padding: 8px 24px;
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .logout-btn:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .logout-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Очистка float для сообщений */
+        .chat-messages:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* Для мобильных устройств - адаптация */
+        @media (max-width: 768px) {
+            .chat-container {
+                padding: 10px;
+            }
+
+            .chat-messages-wrapper {
+                margin: 10px auto;
+                border-radius: 15px;
+            }
+
+            .chat-messages {
+                height: 400px;
+                padding: 15px;
+            }
+
+            .message {
+                max-width: 85%;
+                padding: 12px;
+            }
+
+            .logout-container {
+                top: 15px;
+                left: 15px;
+            }
+
+            .logout-btn {
+                padding: 6px 18px;
+                font-size: 13px;
+            }
+        }
+
+        /* Для очень маленьких экранов */
+        @media (max-width: 480px) {
+            .chat-messages {
+                height: 350px;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+
+            .logout-btn {
+                padding: 5px 15px;
+                font-size: 12px;
+            }
+        }
+
+        /* Скроллбар для чата */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
 </head>
 
-<script>
-function toggleMenu(){
-    const menu = document.getElementById("sideMenu")
-    const chatForm = document.querySelector(".form_for_chat")
-
-    menu.classList.toggle("open");
-
-    if (menu.classList.contains("open")){
-        chatForm.classList.add("no-glow");
-        menu.classList.add("glow");
-    }
-    
-    else{
-        chatForm.classList.remove("no-glow");
-        menu.classList.remove("glow");
-    }
-
-}
-</script>
-
-<body> 
+<body>
+    <!-- Кнопка выхода СЛЕВА в стиле как Text/Image -->
+    <div class="logout-container">
+        <button class="logout-btn" onclick="window.location.href='{{ url_for('logout') }}'">
+            Out
+        </button>
+    </div>
 
     <div class="top-buttons">
         <button type="button" class="text active">Text</button>
@@ -36,30 +224,162 @@ function toggleMenu(){
 
     <div class="water">
         <div class="water-text">
-            <p>HI! I’m your creative AI assistant.</p>
+            <p>HI! I'm your creative AI assistant.</p>
             <h1>What would you like to generate today?</h1>
         </div>
     </div>
 
-    <div class="form_for_chat">
-
-        <input type="text" id="chat_input" name="chat_input" placeholder="Type your prompt here..." required>
-
-        <button type="submit" class="send-btn" onclick="alert('Send clicked')">→</button>
+    <!-- Основной контейнер чата -->
+    <div class="chat-container">
+        <div class="chat-messages-wrapper">
+            <div class="chat-messages" id="chatMessages">
+                {% for message in chat_messages %}
+                    <div class="message {% if message.role == 'user' %}user-message{% else %}ai-message{% endif %}">
+                        <div class="message-text">{{ message.content }}</div>
+                        {% if message.created_at %}
+                            <span class="timestamp">{{ message.created_at.strftime('%H:%M') }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
+    <!-- Индикатор загрузки -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Генерирую ответ... Пожалуйста, подождите</p>
+    </div>
+
+    <!-- Форма ввода -->
+    <div class="form_for_chat">
+        <input type="text" id="chat_input" name="chat_input"
+               placeholder="Type your prompt here..."
+               required
+               onkeypress="if(event.key === 'Enter') sendTextRequest()">
+        <button type="button" class="send-btn" onclick="sendTextRequest()">→</button>
+    </div>
+
+    <script>
+        let currentChatId = {{ current_chat_id }};
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Авто-скролл вниз при загрузке
+            scrollToBottom();
+
+            // Фокус на поле ввода
+            document.getElementById('chat_input').focus();
+        });
+
+        function sendTextRequest() {
+            const input = document.getElementById('chat_input');
+            const prompt = input.value.trim();
+
+            if (!prompt) {
+                alert('Please enter your prompt');
+                input.focus();
+                return;
+            }
+
+            // Добавляем сообщение пользователя
+            addMessageToChat(prompt, 'user');
+            input.value = '';
+            input.focus(); // Возвращаем фокус на поле ввода
+
+            // Показываем загрузку
+            showLoading(true);
+
+            // Отправляем запрос
+            fetch('/generate_text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+
+                if (data.success) {
+                    // Добавляем ответ
+                    addMessageToChat(data.text, 'assistant');
+                } else {
+                    addMessageToChat('Error: ' + data.error, 'assistant');
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                addMessageToChat('Network error: ' + error.message, 'assistant');
+                console.error('Error:', error);
+            });
+        }
+
+        function addMessageToChat(text, role) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+
+            messageDiv.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+
+            let html = `<div class="message-text">${escapeHtml(text)}</div>`;
+
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            html += `<span class="timestamp">${timeString}</span>`;
+
+            messageDiv.innerHTML = html;
+            chatMessages.appendChild(messageDiv);
+
+            scrollToBottom();
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function scrollToBottom() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Автоматическая высота чата в зависимости от экрана
+        function adjustChatHeight() {
+            const chatMessages = document.getElementById('chatMessages');
+            const windowHeight = window.innerHeight;
+
+            // Вычисляем оптимальную высоту для чата
+            // Оставляем место для верхних элементов и формы ввода
+            if (windowWidth >= 768) {
+                // Для десктопа - фиксированная высота
+                chatMessages.style.height = '675px';
+            } else if (windowWidth >= 480) {
+                // Для планшетов
+                chatMessages.style.height = '400px';
+            } else {
+                // Для мобильных
+                chatMessages.style.height = '350px';
+            }
+        }
+
+        // Проверяем размер экрана при загрузке и изменении размера
+        let windowWidth = window.innerWidth;
+        window.addEventListener('resize', function() {
+            windowWidth = window.innerWidth;
+            adjustChatHeight();
+        });
+
+        // Инициализация высоты при загрузке
+        adjustChatHeight();
+    </script>
 </body>
-
-<div class = "menu" onclick = "toggleMenu()">
-    <span></span>
-    <span></span>
-    <span></span>
-</div>
-
-<div class = "side-menu" id = "sideMenu">
-    <h2>Your chats</h2>
-</div>
-
-
-
 </html>
