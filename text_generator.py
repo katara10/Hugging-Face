@@ -1,15 +1,16 @@
-import openai
+from openai import OpenAI
 from googletrans import Translator
 import time
 from datetime import datetime
 import requests
 import json
 
-
 class AdvancedSmolLM3:
     def __init__(self, api_keys=None):
         if api_keys is None:
             api_keys = [
+                "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",
+                "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",
                 "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",
                 "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",
                 "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",
@@ -23,7 +24,7 @@ class AdvancedSmolLM3:
         self.max_retries = len(api_keys)
         self.model = "HuggingFaceTB/SmolLM3-3B"
         self.translator = Translator()
-        self.api_base = "https://api-inference.huggingface.co/models/"
+        self.api_base = "https://router.huggingface.co/v1"
 
     def get_best_key(self):
         """Выбирает лучший ключ на основе истории использования"""
@@ -85,41 +86,26 @@ class AdvancedSmolLM3:
 
     def query_huggingface(self, prompt, api_key, max_tokens=2500):
         """Прямой запрос к Hugging Face API"""
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": max_tokens,
-                "temperature": 0.6,
-                "do_sample": True,
-                "return_full_text": False
-            }
-        }
-
         try:
-            response = requests.post(
-                f"{self.api_base}{self.model}",
-                headers=headers,
-                json=payload,
-                timeout=30
+            client = OpenAI(
+                base_url=self.api_base,
+                api_key=api_key,
             )
 
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    return result[0].get('generated_text', '')
-            else:
-                error_msg = f"HTTP {response.status_code}: {response.text}"
-                raise Exception(error_msg)
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=prompt,
+                max_tokens=max_tokens,
+                temperature=0.6,
+            )
 
+            if completion.choices and len(completion.choices) > 0:
+                return completion.choices[0].message.content
+            else:
+                raise Exception("Пустой ответ от модели")
         except Exception as e:
             raise Exception(f"HuggingFace API error: {str(e)}")
 
-        return ""
 
     def ask(self, question, thinking=False, max_tokens=2500):
         retries = 0
@@ -143,7 +129,11 @@ class AdvancedSmolLM3:
                     system_msg += " Объясни свои рассуждения шаг за шагом на русском языке."
 
                 # Формируем полный промпт
-                full_prompt = f"{system_msg}\n\nВопрос: {question}\nОтвет:"
+
+                full_prompt = [
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": question}
+                ]
 
                 # Используем прямой запрос к Hugging Face
                 response_text = self.query_huggingface(full_prompt, current_key, max_tokens)
@@ -186,6 +176,8 @@ class AdvancedSmolLM3:
 def get_ai_text(question, thinking=True, api_keys=None):
     if api_keys is None:
         api_keys = [
+            "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",
+            "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",
             "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",
             "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",
             "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",
