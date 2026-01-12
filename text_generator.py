@@ -1,9 +1,23 @@
 from openai import OpenAI
-from googletrans import Translator
 import time
 from datetime import datetime
 import requests
 import json
+import sys
+import types
+
+cgi_module = types.ModuleType('cgi')
+cgi_module.parse_header = lambda x: ('text/plain', {})
+cgi_module.MiniFieldStorage = type('MiniFieldStorage', (), {})
+cgi_module.parse_multipart = None
+sys.modules['cgi'] = cgi_module
+
+httpcore_module = types.ModuleType('httpcore')
+httpcore_module.SyncHTTPTransport = type('SyncHTTPTransport', (), {})
+httpcore_module.AsyncHTTPTransport = type('AsyncHTTPTransport', (), {})
+sys.modules['httpcore'] = httpcore_module
+
+from googletrans import Translator
 
 class AdvancedSmolLM3:
     def __init__(self, api_keys=None):
