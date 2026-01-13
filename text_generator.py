@@ -5,6 +5,7 @@ import requests
 import json
 import sys
 import types
+import re
 
 cgi_module = types.ModuleType('cgi')
 cgi_module.parse_header = lambda x: ('text/plain', {})
@@ -19,17 +20,12 @@ sys.modules['httpcore'] = httpcore_module
 
 from googletrans import Translator
 
+
 class AdvancedSmolLM3:
     def __init__(self, api_keys=None):
         if api_keys is None:
             api_keys = [
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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",
-                "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"
+                "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"
             ]
 
         self.api_keys = api_keys
@@ -75,10 +71,75 @@ class AdvancedSmolLM3:
         except:
             return 'en'
 
+    def format_response(self, text):
+        """Форматирует ответ для лучшей читаемости"""
+        # Убираем markdown заголовки (###) и заменяем их на обычный текст
+        text = re.sub(r'###\s*(.*?)\s*$', r'\1', text, flags=re.MULTILINE)
+        text = re.sub(r'##\s*(.*?)\s*$', r'\1', text, flags=re.MULTILINE)
+        text = re.sub(r'#\s*(.*?)\s*$', r'\1', text, flags=re.MULTILINE)
+
+        # Убираем лишние пробелы вокруг знаков препинания
+        text = re.sub(r'\s+([.,:;!?])', r'\1', text)
+        text = re.sub(r'([.,:;!?])\s+', r'\1 ', text)
+
+        # Исправляем неправильные отступы и пробелы
+        text = re.sub(r'\s+', ' ', text)
+
+        # Разбиваем на предложения и обрабатываем каждое
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        formatted_sentences = []
+
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+
+            # Если предложение начинается с цифры и точки (список)
+            if re.match(r'^\d+\.', sentence):
+                formatted_sentences.append(sentence)
+            # Если предложение короткое и может быть заголовком
+            elif len(sentence) < 60 and not sentence.endswith(('.', '!', '?')):
+                formatted_sentences.append(sentence)
+            else:
+                formatted_sentences.append(sentence)
+
+        # Объединяем предложения с правильными переносами
+        result = []
+        current_paragraph = []
+
+        for sentence in formatted_sentences:
+            # Если это элемент списка или короткий заголовок
+            if re.match(r'^(\d+\.|\-|\*|•|\—|\–)', sentence) or \
+                    (len(sentence) < 50 and not sentence.endswith(('.', '!', '?'))):
+                # Завершаем предыдущий абзац если он есть
+                if current_paragraph:
+                    result.append(' '.join(current_paragraph))
+                    current_paragraph = []
+                result.append(sentence)
+            else:
+                current_paragraph.append(sentence)
+
+                # Если абзац становится слишком длинным, начинаем новый
+                if len(' '.join(current_paragraph)) > 500:
+                    result.append(' '.join(current_paragraph))
+                    current_paragraph = []
+
+        # Добавляем последний абзац
+        if current_paragraph:
+            result.append(' '.join(current_paragraph))
+
+        return '\n\n'.join(result)
+
     def clean_response(self, text):
         """Очищает ответ от тегов <think> и английского текста"""
-        import re
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+        text = re.sub(r'\[.*?\]', '', text)  # Убираем квадратные скобки
+        text = re.sub(r'\(.*?\)', '', text)  # Убираем круглые скобки с пояснениями
+        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Убираем двойные звездочки
+        text = re.sub(r'\*(.*?)\*', r'\1', text)  # Убираем одинарные звездочки
+
+        # Убираем лишние пробелы в конце предложений
+        text = re.sub(r'\s+$', '', text, flags=re.MULTILINE)
 
         lines = text.split('\n')
         cleaned_lines = []
@@ -88,15 +149,17 @@ class AdvancedSmolLM3:
             if not line:
                 continue
 
-            russian_chars = len([c for c in line if '\u0400' <= c <= '\u04FF'])
-            total_chars = len([c for c in line if c.isalpha()])
+            # Проверяем, достаточно ли русских символов
+            russian_chars = len([c for c in line if '\u0400' <= c <= '\u04FF' or c in ' .,!?;:-«»—'])
+            total_chars = len([c for c in line if c.isalpha() or c in ' .,!?;:-«»—'])
 
             if total_chars == 0:
                 cleaned_lines.append(line)
-            elif russian_chars / total_chars > 0.3:
+            elif russian_chars / total_chars > 0.5 if total_chars > 0 else True:
                 cleaned_lines.append(line)
 
-        return '\n'.join(cleaned_lines).strip()
+        result = '\n'.join(cleaned_lines).strip()
+        return self.format_response(result)
 
     def query_huggingface(self, prompt, api_key, max_tokens=2500):
         """Прямой запрос к Hugging Face API"""
@@ -120,7 +183,6 @@ class AdvancedSmolLM3:
         except Exception as e:
             raise Exception(f"HuggingFace API error: {str(e)}")
 
-
     def ask(self, question, thinking=False, max_tokens=2500):
         retries = 0
 
@@ -135,15 +197,21 @@ class AdvancedSmolLM3:
 - Использовать теги <think> или любые другие XML-теги
 - Писать на английском языке
 - Включать внутренние размышления в ответ
-- Использовать markdown разметку
+- Использовать markdown разметку (###, ##, #, **текст**)
+- Использовать символы *, ** для выделения текста
 
-Отвечай четко, ясно и по делу на русском языке."""
+Требования к ответу:
+- Отвечай четко, ясно и по делу на русском языке
+- Используй правильную пунктуацию
+- Не используй markdown, только обычный текст
+- Форматируй ответ с помощью абзацев
+- Используй списки без специальных символов
+- Каждое предложение должно заканчиваться точкой"""
 
                 if thinking:
                     system_msg += " Объясни свои рассуждения шаг за шагом на русском языке."
 
                 # Формируем полный промпт
-
                 full_prompt = [
                     {"role": "system", "content": system_msg},
                     {"role": "user", "content": question}
@@ -190,13 +258,7 @@ class AdvancedSmolLM3:
 def get_ai_text(question, thinking=True, api_keys=None):
     if api_keys is None:
         api_keys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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"
+            "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"
         ]
 
     model = AdvancedSmolLM3(api_keys)
@@ -205,4 +267,5 @@ def get_ai_text(question, thinking=True, api_keys=None):
 
 # Тестирование
 if __name__ == "__main__":
-    print(get_ai_text("что такое искусственный интеллект?"))
+    response = get_ai_text("что такое искусственный интеллект?")
+    print(response)
